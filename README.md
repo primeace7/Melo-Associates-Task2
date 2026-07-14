@@ -14,13 +14,8 @@ more over the top.
 - **Zod** to validate both what the user types and what the AI sends back
 - **Firebase AI Logic** (Gemini) for the actual compliment-writing, using controlled generation
   (see below) so the model's output is structurally constrained to match what we expect
-- No router — it's a single page, so we kept things simple
+- No router, it's a single page, so we kept things simple
 
-> **Heads up about hidden files:** `.gitignore` and `.env.example` are both in this project, but
-> file explorers (Finder, Windows Explorer) hide "dotfiles" — anything starting with `.` — by
-> default. If you don't see them after unzipping, turn on "show hidden files"
-> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>.</kbd> on macOS Finder, or the "View → Show → Hidden
-> items" checkbox on Windows), or just run `ls -la` in a terminal from the project folder.
 
 ## Getting started
 
@@ -50,7 +45,7 @@ Gemini. It's free to set up and takes about 5 minutes:
 
 5. Open `.env` and paste in the values from step 3.
 
-That's it — no backend server or API key management needed. Firebase handles the connection
+That's it. No backend server or API key management needed. Firebase handles the connection
 to Gemini for you.
 
 ### 3. Run it
@@ -67,8 +62,7 @@ Then open the URL it prints (usually `http://localhost:5173`).
 npm run build
 ```
 
-The output goes into `dist/`, ready to deploy anywhere that serves static files (Firebase
-Hosting, Vercel, Netlify, etc).
+The output goes into `dist/`, ready to deploy anywhere that serves static files.
 
 ## How the project is organized
 
@@ -117,52 +111,42 @@ live in `src/features/compliment-generator/prompts/`:
 ### Brand Guidelines tab
 
 People using the app can open **Brand guidelines** (top of the page) to write up to 3 of their
-own custom guidelines — short instructions like "always mention teamwork" or "never use emoji" —
-and pick one to use instead of Default. Whichever one is active gets appended to every request,
+own custom guidelines. A guideline can contain short instructions like "always mention teamwork" or "never use emoji". Pick any guideline you wish to use, or Default. Whichever one is active gets appended to every request,
 for both the first generation *and* any escalations.
 
 - **Default** always shows up as an option, but its content is baked into the code
   (`systemPrompt3.ts`) and is never displayed or editable from the UI.
 - Custom guidelines (up to 3) are stored in the browser's `localStorage`, so they stick around
-  between visits on the same device/browser — there's no account system or server-side storage.
+  between visits on the same device/browser. There's no account system or server-side storage.
 - This is a client-side app, so a technically determined person could still find the Default
   text by inspecting the built JavaScript. `localStorage`-based hiding is meant for a normal UI
-  flow, not as a security boundary — don't put secrets in it.
+  flow, not as a security boundary, so don't put secrets in it.
 
-### Controlled generation
-
-Both AI calls set `generationConfig.responseSchema` (via the `Schema` builder from
-`firebase/ai`) alongside `responseMimeType: "application/json"`, so Gemini is constrained to
-return the right JSON shape directly instead of relying only on instructions in the prompt. The
-schemas live in `schemas/aiResponseSchemas.ts` and mirror the Zod schemas in
-`schemas/complimentSchemas.ts` field-for-field. We still run the Zod check afterwards — controlled
-generation guarantees the *shape* of the response, while Zod enforces the extra rules (like "not
-empty" or "compliments are required only when there's no error") and drives the retry-once logic.
 
 ### How a request gets validated
 
 1. What the user types is checked with Zod (at least 3 characters) before anything is sent to
    the AI.
-2. The model is called with a `responseSchema` (controlled generation — see above), so Gemini is
+2. The model is called with a `responseSchema` (controlled generation), so Gemini is
    constrained to return the right JSON shape.
 3. That JSON is checked against a Zod schema (`schemas/complimentSchemas.ts`) for the rules a
    response schema alone can't express (e.g. "non-empty").
-4. If it doesn't match — say a required field came back empty — we quietly ask the model to try
+4. If it doesn't match, say a required field came back empty, we quietly ask the model to try
    again once. If that second attempt also fails, the user sees a friendly "please try again"
    message instead of a broken screen.
 
 ### A couple of small UX notes
 
-- The **"Get compliments"** button stays disabled once a result is showing — hit **Clear**
+- The **"Get compliments"** button stays disabled once a result is showing. Click **Clear**
   first if you want to try a different input.
-- **Restore** only lights up right after you hit Clear, so you can always get back what you just
+- **Restore** only lights up right after you clear Clear, so you can always get back what you just
   cleared.
 - The research facts shown while loading are paraphrased from public reporting on real studies
   and surveys about workplace recognition (Gallup, Harvard Business Review, Oxford's Saïd
-  Business School, and a few others) — see `data/loadingFacts.ts` for the full list and sources.
+  Business School, and a few others). See `data/loadingFacts.ts` for the full list and sources.
 
 ## A note on the Gemini model
 
 By default this uses `gemini-3.1-flash-lite`, set in `.env` via `VITE_GEMINI_MODEL`. It's fast
 and inexpensive, which suits short compliment generation well. You can swap in a different
-Gemini model at any time by changing that one value — no code changes needed.
+Gemini model at any time by changing that one value, no code changes needed.

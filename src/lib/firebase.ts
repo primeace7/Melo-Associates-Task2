@@ -74,6 +74,5 @@ export async function generateJsonText(
   prompt: string,
 ): Promise<string> {
   const result = await model.generateContent(prompt);
-  console.log("MODEL RESULT \n", result.response.text());
   return result.response.text();
 }

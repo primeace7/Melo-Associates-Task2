@@ -275,7 +275,6 @@ export function useComplimentGenerator(activeGuidelineContent: string | null) {
               message: "Something unexpected happened. Please try again.",
             };
       dispatch({ type: "SUBMIT_FAILURE", error: appError });
-      console.log("ERROR RESULT: \n", appError);
     }
   }, [state.inputText, state.mode, activeGuidelineContent]);
 
