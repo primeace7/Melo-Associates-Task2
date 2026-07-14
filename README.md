@@ -12,8 +12,15 @@ more over the top.
 - **React + TypeScript**, built with **Vite**
 - **Tailwind CSS** for styling
 - **Zod** to validate both what the user types and what the AI sends back
-- **Firebase AI Logic** (Gemini) for the actual compliment-writing
+- **Firebase AI Logic** (Gemini) for the actual compliment-writing, using controlled generation
+  (see below) so the model's output is structurally constrained to match what we expect
 - No router — it's a single page, so we kept things simple
+
+> **Heads up about hidden files:** `.gitignore` and `.env.example` are both in this project, but
+> file explorers (Finder, Windows Explorer) hide "dotfiles" — anything starting with `.` — by
+> default. If you don't see them after unzipping, turn on "show hidden files"
+> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>.</kbd> on macOS Finder, or the "View → Show → Hidden
+> items" checkbox on Windows), or just run `ls -la` in a terminal from the project folder.
 
 ## Getting started
 
@@ -72,10 +79,18 @@ src/
       components/             <- the UI pieces (mode toggle, cards, buttons, ticker...)
       hooks/                  <- useComplimentGenerator.ts, the "brain" of the feature
       prompts/                <- the 3 system prompts live here (see below)
-      schemas/                <- zod schemas that validate the AI's JSON responses
+      schemas/                <- zod schemas + the mirrored Firebase controlled-generation schemas
       data/                   <- suggested job titles + the loading-screen facts
+      utils/                  <- small helpers, e.g. building copy-to-clipboard text
+    brand-guidelines/         <- the "Brand guidelines" tab (Default + up to 3 custom)
+      components/             <- BrandGuidelinesButton.tsx (trigger + modal + form)
+      hooks/                  <- useBrandGuidelines.ts, persisted to localStorage
+      storage.ts               <- localStorage read/write helpers
     help/
       components/             <- the "How to use" button + panel
+  components/
+    Pill.tsx                  <- small highlighted badge, used in the Help panel etc.
+    Toast.tsx                 <- the top-center copy confirmation toast
   lib/
     firebase.ts               <- sets up the connection to Gemini via Firebase AI Logic
     inference.ts              <- calls the model, checks the response, retries if needed
@@ -94,20 +109,47 @@ live in `src/features/compliment-generator/prompts/`:
   (Job Title / Describe Someone / Auto) that are picked based on the mode toggle in the UI.
 - **`systemPrompt2.ts`** — used when someone hits "Escalate" on a compliment, to make it even
   more over-the-top.
-- **`systemPrompt3.ts`** — currently left blank on purpose. It's a placeholder for extra
-  instructions that'll get appended to every System Prompt 1 variant in a future update. When
-  it's filled in, nothing else needs to change — `systemPrompt1.ts` already appends it
-  automatically.
+- **`systemPrompt3.ts`** — brand guidelines, appended to whichever prompt is being sent (1 or 2)
+  via its exported `withBrandGuidelines()` helper. It holds the app's built-in **Default**
+  guidelines (`SYSTEM_PROMPT_3_ADDITIONS` — edit this constant directly in code with your own
+  default brand voice). This content is never shown in the UI.
+
+### Brand Guidelines tab
+
+People using the app can open **Brand guidelines** (top of the page) to write up to 3 of their
+own custom guidelines — short instructions like "always mention teamwork" or "never use emoji" —
+and pick one to use instead of Default. Whichever one is active gets appended to every request,
+for both the first generation *and* any escalations.
+
+- **Default** always shows up as an option, but its content is baked into the code
+  (`systemPrompt3.ts`) and is never displayed or editable from the UI.
+- Custom guidelines (up to 3) are stored in the browser's `localStorage`, so they stick around
+  between visits on the same device/browser — there's no account system or server-side storage.
+- This is a client-side app, so a technically determined person could still find the Default
+  text by inspecting the built JavaScript. `localStorage`-based hiding is meant for a normal UI
+  flow, not as a security boundary — don't put secrets in it.
+
+### Controlled generation
+
+Both AI calls set `generationConfig.responseSchema` (via the `Schema` builder from
+`firebase/ai`) alongside `responseMimeType: "application/json"`, so Gemini is constrained to
+return the right JSON shape directly instead of relying only on instructions in the prompt. The
+schemas live in `schemas/aiResponseSchemas.ts` and mirror the Zod schemas in
+`schemas/complimentSchemas.ts` field-for-field. We still run the Zod check afterwards — controlled
+generation guarantees the *shape* of the response, while Zod enforces the extra rules (like "not
+empty" or "compliments are required only when there's no error") and drives the retry-once logic.
 
 ### How a request gets validated
 
 1. What the user types is checked with Zod (at least 3 characters) before anything is sent to
    the AI.
-2. The AI is asked to respond with only a JSON object, matching a specific shape.
-3. That JSON is checked against a Zod schema (`schemas/complimentSchemas.ts`).
-4. If it doesn't match — say the AI added stray text, or left out a required field — we quietly
-   ask the model to try again once. If that second attempt also fails, the user sees a friendly
-   "please try again" message instead of a broken screen.
+2. The model is called with a `responseSchema` (controlled generation — see above), so Gemini is
+   constrained to return the right JSON shape.
+3. That JSON is checked against a Zod schema (`schemas/complimentSchemas.ts`) for the rules a
+   response schema alone can't express (e.g. "non-empty").
+4. If it doesn't match — say a required field came back empty — we quietly ask the model to try
+   again once. If that second attempt also fails, the user sees a friendly "please try again"
+   message instead of a broken screen.
 
 ### A couple of small UX notes
 

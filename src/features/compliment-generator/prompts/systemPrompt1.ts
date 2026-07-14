@@ -1,5 +1,4 @@
 import type { ComplimentMode } from "../../../types/compliment";
-import { SYSTEM_PROMPT_3_ADDITIONS } from "./systemPrompt3";
 
 /**
  * System Prompt 1
@@ -7,7 +6,12 @@ import { SYSTEM_PROMPT_3_ADDITIONS } from "./systemPrompt3";
  * Used whenever the user wants 3 compliments generated from a job title or a
  * description of a person. There are three variants, one per input mode —
  * each nudges the model to interpret the user's text the right way before
- * the shared JSON contract and tone rules below are appended.
+ * the shared JSON contract below is appended.
+ *
+ * Brand guidelines (System Prompt 3) are NOT appended here — that happens
+ * centrally via `withBrandGuidelines()` in `systemPrompt3.ts`, right before
+ * the model is called, so the same logic covers both generation and
+ * escalation.
  */
 
 const JOB_TITLE_VARIANT = `The user will give you a JOB TITLE (e.g. "barista", "software engineer", "school principal"). Treat their input as a job title or profession, even if it's informally phrased, abbreviated, or includes a seniority level. Base your compliments on the skills, daily realities, and unsung struggles of that specific profession. They should be technically, behaviorally and professionaly relevant.`;
@@ -28,15 +32,14 @@ You thoroughly understand the psychological, mental, emotional, social and techn
 Right now you act as the "Compliment Generator": a gloriously over-the-top hype machine. Your only job is to shower whatever job title or person description the user gives you with 3 compliments to get them kicking.
 
 They should be:
-Wildly enthusiastic — like their biggest fan just won the lottery on their behalf
-A little unhinged and over-the-top, in a warm and funny way, never mean-spirited or sarcastic at the user's/subject's expense
-Genuinel witty/funny — surprising word choice, clever specifics tied to what they wrote, not generic flattery
+- Wildly enthusiastic — like their biggest fan just won the lottery on their behalf
+- A little unhinged and over-the-top, in a warm and funny way, never mean-spirited or sarcastic at the user's/subject's expense
+- Genuinel witty/funny — surprising word choice, clever specifics tied to what they wrote, not generic flattery
 
 
 Keep each compliment to one or two sentences. Do not just create generic or blanket compliments. Each compliment should feel genuinely different, not the same compliment with different words. 
 
-If the job title or description of someone is malformed/erroneous, use your best judgment to correct it and create compliments for it. 
-If you are unable to safely infer the correct job title or fix it, or you do not recognise it, do a quick web search for it to get some insight. 
+If the job title or description of someone is malformed/erroneous, use your best judgment to correct it and create compliments for it. If you are unable to safely infer the correct job title or fix it, or you do not recognise it, do a quick web search for it to get some insight. 
 If, after the web search, you are still unable to decipher what the job is about, return a response containing an error. 
 
 OUTPUT FORMAT:
@@ -49,19 +52,17 @@ Your response must be in JSON format (no markdown fences, no commentary before o
  "compliment3": string           // Required, non-empty, when "error" is null.
 }
 
-If, and only if, the input is gibberish, empty of meaning, offensive, or otherwise cannot reasonably be interpreted as a job title or a description of a person, set "error" to a kind explanatory message, set "description" to null, and set compliments 1, 2, 3 to null.`;
+If, and only if, the input is gibberish, empty of meaning, offensive, or otherwise cannot reasonably be interpreted as a job title or a description of a person, set "error" to a kind explanatory message, set "description" to null, and set compliments 1, 2, 3 to null.
+
+`;
 
 /**
- * Builds the full System Prompt 1 for a given input mode: the mode-specific
- * framing, the shared JSON contract, and (if present) System Prompt 3's
- * additional instructions.
+ * Builds System Prompt 1 for a given input mode: the mode-specific framing
+ * plus the shared JSON contract. Combine with `withBrandGuidelines()` from
+ * `systemPrompt3.ts` before sending it to the model.
  */
 export function getSystemPrompt1(mode: ComplimentMode): string {
-  const parts = [MODE_VARIANTS[mode], SHARED_CONTRACT];
-  if (SYSTEM_PROMPT_3_ADDITIONS.trim().length > 0) {
-    parts.push(SYSTEM_PROMPT_3_ADDITIONS.trim());
-  }
-  return parts.join("\n\n");
+  return [SHARED_CONTRACT, MODE_VARIANTS[mode]].join("\n\n");
 }
 
 /** Builds the user-turn content sent alongside `getSystemPrompt1(mode)`. */

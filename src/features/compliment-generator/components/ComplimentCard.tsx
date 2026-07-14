@@ -1,5 +1,6 @@
 import type { ComplimentItem } from '../../../types/compliment';
 import { CopyButton } from './CopyButton';
+import { getComplimentCopyText } from '../utils/complimentText';
 
 interface ComplimentCardProps {
   item: ComplimentItem;
@@ -15,7 +16,6 @@ interface ComplimentCardProps {
  */
 export function ComplimentCard({ item, index, onEscalate, onCopied }: ComplimentCardProps) {
   const { escalation } = item;
-  const displayText = escalation?.escalated ?? item.text;
 
   return (
     <li
@@ -26,7 +26,7 @@ export function ComplimentCard({ item, index, onEscalate, onCopied }: Compliment
         <span className="font-mono text-xs uppercase tracking-wide text-stage-inkSoft">
           Compliment {index + 1}
         </span>
-        <CopyButton getText={() => displayText} label="Copy" onCopied={onCopied} />
+        <CopyButton getText={() => getComplimentCopyText(item)} label="Copy" onCopied={onCopied} />
       </div>
 
       {!escalation && (

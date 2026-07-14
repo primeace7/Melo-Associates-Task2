@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useMemo, useReducer } from "react";
 import type {
   AppError,
   ComplimentItem,
@@ -6,13 +6,28 @@ import type {
   ComplimentResult,
   ComplimentSlot,
   ComplimentSnapshot,
-} from '../../../types/compliment';
-import { createJsonModel, generateJsonText } from '../../../lib/firebase';
-import { runJsonInference, InferenceError } from '../../../lib/inference';
-import { ComplimentGenerationSchema, EscalationSchema, UserInputSchema } from '../schemas/complimentSchemas';
-import { getSystemPrompt1, buildComplimentUserPrompt } from '../prompts/systemPrompt1';
-import { SYSTEM_PROMPT_2, buildEscalationUserPrompt } from '../prompts/systemPrompt2';
-import { invalidInputError } from '../../../lib/errors';
+} from "../../../types/compliment";
+import { createJsonModel, generateJsonText } from "../../../lib/firebase";
+import { runJsonInference, InferenceError } from "../../../lib/inference";
+import {
+  ComplimentGenerationSchema,
+  EscalationSchema,
+  UserInputSchema,
+} from "../schemas/complimentSchemas";
+import {
+  complimentGenerationResponseSchema,
+  escalationResponseSchema,
+} from "../schemas/aiResponseSchemas";
+import {
+  getSystemPrompt1,
+  buildComplimentUserPrompt,
+} from "../prompts/systemPrompt1";
+import {
+  SYSTEM_PROMPT_2,
+  buildEscalationUserPrompt,
+} from "../prompts/systemPrompt2";
+import { withBrandGuidelines } from "../prompts/systemPrompt3";
+import { invalidInputError } from "../../../lib/errors";
 
 interface State {
   mode: ComplimentMode;
@@ -24,66 +39,86 @@ interface State {
 }
 
 type Action =
-  | { type: 'SET_INPUT_TEXT'; text: string }
-  | { type: 'SET_MODE'; mode: ComplimentMode }
-  | { type: 'SUBMIT_START' }
-  | { type: 'SUBMIT_SUCCESS'; result: ComplimentResult }
-  | { type: 'SUBMIT_FAILURE'; error: AppError }
-  | { type: 'DISMISS_ERROR' }
-  | { type: 'CLEAR' }
-  | { type: 'RESTORE' }
-  | { type: 'ESCALATE_START'; slot: ComplimentSlot }
-  | { type: 'ESCALATE_SUCCESS'; slot: ComplimentSlot; original: string; escalated: string }
-  | { type: 'ESCALATE_FAILURE'; slot: ComplimentSlot; message: string };
+  | { type: "SET_INPUT_TEXT"; text: string }
+  | { type: "SET_MODE"; mode: ComplimentMode }
+  | { type: "SUBMIT_START" }
+  | { type: "SUBMIT_SUCCESS"; result: ComplimentResult }
+  | { type: "SUBMIT_FAILURE"; error: AppError }
+  | { type: "DISMISS_ERROR" }
+  | { type: "CLEAR" }
+  | { type: "RESTORE" }
+  | { type: "ESCALATE_START"; slot: ComplimentSlot }
+  | {
+      type: "ESCALATE_SUCCESS";
+      slot: ComplimentSlot;
+      original: string;
+      escalated: string;
+    }
+  | { type: "ESCALATE_FAILURE"; slot: ComplimentSlot; message: string };
 
 const initialState: State = {
-  mode: 'auto',
-  inputText: '',
+  mode: "auto",
+  inputText: "",
   isSubmitting: false,
   result: null,
   error: null,
   snapshot: null,
 };
 
-function updateItem(result: ComplimentResult, slot: ComplimentSlot, update: (item: ComplimentItem) => ComplimentItem): ComplimentResult {
+function updateItem(
+  result: ComplimentResult,
+  slot: ComplimentSlot,
+  update: (item: ComplimentItem) => ComplimentItem,
+): ComplimentResult {
   return {
     ...result,
-    items: result.items.map((item) => (item.slot === slot ? update(item) : item)),
+    items: result.items.map((item) =>
+      item.slot === slot ? update(item) : item,
+    ),
   };
 }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'SET_INPUT_TEXT':
+    case "SET_INPUT_TEXT":
       return { ...state, inputText: action.text };
 
-    case 'SET_MODE':
+    case "SET_MODE":
       return { ...state, mode: action.mode };
 
-    case 'SUBMIT_START':
+    case "SUBMIT_START":
       return { ...state, isSubmitting: true, error: null };
 
-    case 'SUBMIT_SUCCESS':
-      return { ...state, isSubmitting: false, result: action.result, error: null };
+    case "SUBMIT_SUCCESS":
+      return {
+        ...state,
+        isSubmitting: false,
+        result: action.result,
+        error: null,
+      };
 
-    case 'SUBMIT_FAILURE':
+    case "SUBMIT_FAILURE":
       return { ...state, isSubmitting: false, error: action.error };
 
-    case 'DISMISS_ERROR':
+    case "DISMISS_ERROR":
       return { ...state, error: null };
 
-    case 'CLEAR': {
+    case "CLEAR": {
       if (!state.result) return state;
       return {
         ...state,
-        snapshot: { inputText: state.inputText, mode: state.mode, result: state.result },
-        inputText: '',
+        snapshot: {
+          inputText: state.inputText,
+          mode: state.mode,
+          result: state.result,
+        },
+        inputText: "",
         result: null,
         error: null,
       };
     }
 
-    case 'RESTORE': {
+    case "RESTORE": {
       if (!state.snapshot) return state;
       return {
         ...state,
@@ -95,29 +130,39 @@ function reducer(state: State, action: Action): State {
       };
     }
 
-    case 'ESCALATE_START': {
+    case "ESCALATE_START": {
       if (!state.result) return state;
       return {
         ...state,
         result: updateItem(state.result, action.slot, (item) => ({
           ...item,
-          escalation: { original: item.text, escalated: null, isEscalating: true, error: null },
+          escalation: {
+            original: item.text,
+            escalated: null,
+            isEscalating: true,
+            error: null,
+          },
         })),
       };
     }
 
-    case 'ESCALATE_SUCCESS': {
+    case "ESCALATE_SUCCESS": {
       if (!state.result) return state;
       return {
         ...state,
         result: updateItem(state.result, action.slot, (item) => ({
           ...item,
-          escalation: { original: action.original, escalated: action.escalated, isEscalating: false, error: null },
+          escalation: {
+            original: action.original,
+            escalated: action.escalated,
+            isEscalating: false,
+            error: null,
+          },
         })),
       };
     }
 
-    case 'ESCALATE_FAILURE': {
+    case "ESCALATE_FAILURE": {
       if (!state.result) return state;
       return {
         ...state,
@@ -125,7 +170,12 @@ function reducer(state: State, action: Action): State {
           ...item,
           escalation: item.escalation
             ? { ...item.escalation, isEscalating: false, error: action.message }
-            : { original: item.text, escalated: null, isEscalating: false, error: action.message },
+            : {
+                original: item.text,
+                escalated: null,
+                isEscalating: false,
+                error: action.message,
+              },
         })),
       };
     }
@@ -135,14 +185,29 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-const SLOTS: ComplimentSlot[] = ['compliment1', 'compliment2', 'compliment3'];
+const SLOTS: ComplimentSlot[] = ["compliment1", "compliment2", "compliment3"];
 
-export function useComplimentGenerator() {
+/**
+ * @param activeGuidelineContent The currently selected brand guideline's
+ * content (from `useBrandGuidelines`), or null to use the app's built-in
+ * default. Passed straight through to `withBrandGuidelines()` for both
+ * generation and escalation calls.
+ */
+export function useComplimentGenerator(activeGuidelineContent: string | null) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const setInputText = useCallback((text: string) => dispatch({ type: 'SET_INPUT_TEXT', text }), []);
-  const setMode = useCallback((mode: ComplimentMode) => dispatch({ type: 'SET_MODE', mode }), []);
-  const dismissError = useCallback(() => dispatch({ type: 'DISMISS_ERROR' }), []);
+  const setInputText = useCallback(
+    (text: string) => dispatch({ type: "SET_INPUT_TEXT", text }),
+    [],
+  );
+  const setMode = useCallback(
+    (mode: ComplimentMode) => dispatch({ type: "SET_MODE", mode }),
+    [],
+  );
+  const dismissError = useCallback(
+    () => dispatch({ type: "DISMISS_ERROR" }),
+    [],
+  );
 
   const canSubmit = useMemo(() => {
     const trimmedLength = state.inputText.trim().length;
@@ -153,19 +218,29 @@ export function useComplimentGenerator() {
     const parsedInput = UserInputSchema.safeParse(state.inputText);
     if (!parsedInput.success) return;
 
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
       dispatch({
-        type: 'SUBMIT_FAILURE',
-        error: { kind: 'offline', message: "You seem to be offline. Check your connection and give it another try." },
+        type: "SUBMIT_FAILURE",
+        error: {
+          kind: "offline",
+          message:
+            "You seem to be offline. Check your connection and give it another try.",
+        },
       });
       return;
     }
 
-    dispatch({ type: 'SUBMIT_START' });
+    dispatch({ type: "SUBMIT_START" });
 
     try {
-      const systemInstruction = getSystemPrompt1(state.mode);
-      const model = createJsonModel(systemInstruction);
+      const systemInstruction = withBrandGuidelines(
+        getSystemPrompt1(state.mode),
+        activeGuidelineContent,
+      );
+      const model = createJsonModel({
+        systemInstruction,
+        responseSchema: complimentGenerationResponseSchema,
+      });
 
       const data = await runJsonInference({
         callModel: (prompt) => generateJsonText(model, prompt),
@@ -174,7 +249,10 @@ export function useComplimentGenerator() {
       });
 
       if (data.error) {
-        dispatch({ type: 'SUBMIT_FAILURE', error: invalidInputError(data.error) });
+        dispatch({
+          type: "SUBMIT_FAILURE",
+          error: invalidInputError(data.error),
+        });
         return;
       }
 
@@ -182,57 +260,82 @@ export function useComplimentGenerator() {
         description: data.description ?? null,
         items: SLOTS.map((slot) => ({
           slot,
-          text: data[slot] ?? '',
+          text: data[slot] ?? "",
           escalation: null,
         })),
       };
 
-      dispatch({ type: 'SUBMIT_SUCCESS', result });
+      dispatch({ type: "SUBMIT_SUCCESS", result });
     } catch (err) {
-      const appError = err instanceof InferenceError ? err.appError : { kind: 'unknown' as const, message: 'Something unexpected happened. Please try again.' };
-      dispatch({ type: 'SUBMIT_FAILURE', error: appError });
+      const appError =
+        err instanceof InferenceError
+          ? err.appError
+          : {
+              kind: "unknown" as const,
+              message: "Something unexpected happened. Please try again.",
+            };
+      dispatch({ type: "SUBMIT_FAILURE", error: appError });
+      console.log("ERROR RESULT: \n", appError);
     }
-  }, [state.inputText, state.mode]);
+  }, [state.inputText, state.mode, activeGuidelineContent]);
 
-  const clear = useCallback(() => dispatch({ type: 'CLEAR' }), []);
-  const restore = useCallback(() => dispatch({ type: 'RESTORE' }), []);
+  const clear = useCallback(() => dispatch({ type: "CLEAR" }), []);
+  const restore = useCallback(() => dispatch({ type: "RESTORE" }), []);
 
-  const escalate = useCallback(async (slot: ComplimentSlot) => {
-    const item = state.result?.items.find((i) => i.slot === slot);
-    if (!item) return;
+  const escalate = useCallback(
+    async (slot: ComplimentSlot) => {
+      const item = state.result?.items.find((i) => i.slot === slot);
+      if (!item) return;
 
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      dispatch({ type: 'ESCALATE_FAILURE', slot, message: "You seem to be offline. Check your connection and try again." });
-      return;
-    }
-
-    dispatch({ type: 'ESCALATE_START', slot });
-
-    try {
-      const model = createJsonModel(SYSTEM_PROMPT_2);
-
-      const data = await runJsonInference({
-        callModel: (prompt) => generateJsonText(model, prompt),
-        schema: EscalationSchema,
-        basePrompt: buildEscalationUserPrompt(item.text),
-      });
-
-      if (data.error) {
-        dispatch({ type: 'ESCALATE_FAILURE', slot, message: data.error });
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        dispatch({
+          type: "ESCALATE_FAILURE",
+          slot,
+          message:
+            "You seem to be offline. Check your connection and try again.",
+        });
         return;
       }
 
-      dispatch({
-        type: 'ESCALATE_SUCCESS',
-        slot,
-        original: data.original ?? item.text,
-        escalated: data.escalated ?? '',
-      });
-    } catch (err) {
-      const message = err instanceof InferenceError ? err.appError.message : 'Something unexpected happened. Please try again.';
-      dispatch({ type: 'ESCALATE_FAILURE', slot, message });
-    }
-  }, [state.result]);
+      dispatch({ type: "ESCALATE_START", slot });
+
+      try {
+        const systemInstruction = withBrandGuidelines(
+          SYSTEM_PROMPT_2,
+          activeGuidelineContent,
+        );
+        const model = createJsonModel({
+          systemInstruction,
+          responseSchema: escalationResponseSchema,
+        });
+
+        const data = await runJsonInference({
+          callModel: (prompt) => generateJsonText(model, prompt),
+          schema: EscalationSchema,
+          basePrompt: buildEscalationUserPrompt(item.text),
+        });
+
+        if (data.error) {
+          dispatch({ type: "ESCALATE_FAILURE", slot, message: data.error });
+          return;
+        }
+
+        dispatch({
+          type: "ESCALATE_SUCCESS",
+          slot,
+          original: data.original ?? item.text,
+          escalated: data.escalated ?? "",
+        });
+      } catch (err) {
+        const message =
+          err instanceof InferenceError
+            ? err.appError.message
+            : "Something unexpected happened. Please try again.";
+        dispatch({ type: "ESCALATE_FAILURE", slot, message });
+      }
+    },
+    [state.result, activeGuidelineContent],
+  );
 
   return {
     mode: state.mode,

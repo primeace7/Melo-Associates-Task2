@@ -1,15 +1,12 @@
 import type { ComplimentResult, ComplimentSlot } from '../../../types/compliment';
 import { ComplimentCard } from './ComplimentCard';
 import { CopyButton } from './CopyButton';
+import { getComplimentCopyText } from '../utils/complimentText';
 
 interface ResultSectionProps {
   result: ComplimentResult;
   onEscalate: (slot: ComplimentSlot) => void;
   onCopied: (message: string) => void;
-}
-
-function displayTextFor(item: ComplimentResult['items'][number]): string {
-  return item.escalation?.escalated ?? item.text;
 }
 
 /**
@@ -19,10 +16,10 @@ function displayTextFor(item: ComplimentResult['items'][number]): string {
  */
 export function ResultSection({ result, onEscalate, onCopied }: ResultSectionProps) {
   const copyAllText = () =>
-    result.items.map((item, index) => `${index + 1}. ${displayTextFor(item)}`).join('\n');
+    result.items.map((item, index) => `${index + 1}. ${getComplimentCopyText(item)}`).join('\n\n');
 
   return (
-    <section aria-label="Your compliments" className="animate-fade-slide-up space-y-4">
+    <section aria-label="Your compliments" className="animate-fade-slide-up mt-2 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         {result.description ? (
           <p className="max-w-lg font-display text-base italic text-stage-inkSoft sm:text-lg">
@@ -40,7 +37,7 @@ export function ResultSection({ result, onEscalate, onCopied }: ResultSectionPro
         />
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
         {result.items.map((item, index) => (
           <ComplimentCard
             key={item.slot}

@@ -1,14 +1,21 @@
 /**
  * System Prompt 3
  * ----------------
- * Extra instructions that get appended to the end of every System Prompt 1
- * variant (Job Title / Describe Someone / Auto). This file is intentionally
- * left blank for now — it's a placeholder for a future phase of the build
- * where more specific behavior/tone rules will be dropped in here.
+ * The brand guidelines that get appended to whichever prompt is being sent
+ * to the model — System Prompt 1 (generation) or System Prompt 2
+ * (escalation) — so brand voice rules are obeyed everywhere, not just on
+ * first generation.
  *
- * Nothing else needs to change when this is filled in: `getSystemPrompt1()`
- * in `systemPrompt1.ts` already appends `SYSTEM_PROMPT_3_ADDITIONS` to
- * whichever mode variant is active, as long as it's non-empty.
+ * `SYSTEM_PROMPT_3_ADDITIONS` below is the app's built-in "Default" brand
+ * guidelines. It's intentionally never read out to the UI: the Brand
+ * Guidelines tab shows "Default" as an option a person can select, but
+ * never displays or lets anyone edit its actual content. Fill this constant
+ * in directly in code with your own default brand voice instructions.
+ *
+ * People using the app can also write their own custom guidelines from the
+ * Brand Guidelines tab (up to 3), and pick one to use instead of Default —
+ * see `features/brand-guidelines/`. Whichever is currently active gets
+ * passed in as `activeGuidelineContent` below.
  */
 export const SYSTEM_PROMPT_3_ADDITIONS = `
 All compliments generated on behalf of the company must follow these rules without exception:
@@ -22,3 +29,20 @@ All compliments generated on behalf of the company must follow these rules witho
 - Never compare the person to a celebrity or any real public figure
 - All compliments must be workplace appropriate
 `;
+
+/**
+ * Appends the currently active brand guidelines to a base system prompt.
+ * When `activeGuidelineContent` is null (the "Default" option is selected,
+ * or nothing has been chosen yet), falls back to the built-in
+ * `SYSTEM_PROMPT_3_ADDITIONS` above.
+ */
+export function withBrandGuidelines(
+  basePrompt: string,
+  activeGuidelineContent: string | null,
+): string {
+  const guidelines = (
+    activeGuidelineContent ?? SYSTEM_PROMPT_3_ADDITIONS
+  ).trim();
+  if (!guidelines) return basePrompt;
+  return `${basePrompt}\n\nBrand guidelines you must follow:\n${guidelines}`;
+}
