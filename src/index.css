@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-stage-bg text-stage-ink font-body;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(60% 50% at 50% -10%, rgba(232, 163, 61, 0.16), transparent 70%),
+      radial-gradient(45% 40% at 85% 15%, rgba(255, 111, 145, 0.12), transparent 65%);
+    background-attachment: fixed;
+  }
+
+  /* Keep a visible focus ring for keyboard users everywhere, without adding
+     an outline to mouse/touch interactions. */
+  :focus-visible {
+    outline: 2px solid #e8a33d;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* The "ticket stub" look used for each compliment card: a soft punched-hole
+     edge on the left, echoing an award ticket being torn off and handed over. */
+  .ticket-card {
+    position: relative;
+    background: theme('colors.stage.card');
+    border: 1px solid theme('colors.stage.border');
+    border-radius: 1rem;
+    -webkit-mask-image: radial-gradient(circle 7px at 0 var(--tear-y, 28px), transparent 7px, black 7.5px);
+    mask-image: radial-gradient(circle 7px at 0 var(--tear-y, 28px), transparent 7px, black 7.5px);
+  }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
