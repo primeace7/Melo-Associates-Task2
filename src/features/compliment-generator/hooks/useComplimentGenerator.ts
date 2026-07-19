@@ -13,6 +13,7 @@ import {
   ComplimentGenerationSchema,
   EscalationSchema,
   UserInputSchema,
+  getGuidelineRulesForSlot,
 } from "../schemas/complimentSchemas";
 import {
   complimentGenerationResponseSchema,
@@ -53,6 +54,7 @@ type Action =
       slot: ComplimentSlot;
       original: string;
       escalated: string;
+      guidelineRules: number[];
     }
   | { type: "ESCALATE_FAILURE"; slot: ComplimentSlot; message: string };
 
@@ -139,6 +141,7 @@ function reducer(state: State, action: Action): State {
           escalation: {
             original: item.text,
             escalated: null,
+            guidelineRulesFollowed: [],
             isEscalating: true,
             error: null,
           },
@@ -155,6 +158,7 @@ function reducer(state: State, action: Action): State {
           escalation: {
             original: action.original,
             escalated: action.escalated,
+            guidelineRulesFollowed: action.guidelineRules,
             isEscalating: false,
             error: null,
           },
@@ -173,6 +177,7 @@ function reducer(state: State, action: Action): State {
             : {
                 original: item.text,
                 escalated: null,
+                guidelineRulesFollowed: [],
                 isEscalating: false,
                 error: action.message,
               },
@@ -188,12 +193,12 @@ function reducer(state: State, action: Action): State {
 const SLOTS: ComplimentSlot[] = ["compliment1", "compliment2", "compliment3"];
 
 /**
- * @param activeGuidelineContent The currently selected brand guideline's
- * content (from `useBrandGuidelines`), or null to use the app's built-in
+ * @param activeGuidelineRules The currently selected brand guideline's rule
+ * list (from `useBrandGuidelines`), or null to use the app's built-in
  * default. Passed straight through to `withBrandGuidelines()` for both
  * generation and escalation calls.
  */
-export function useComplimentGenerator(activeGuidelineContent: string | null) {
+export function useComplimentGenerator(activeGuidelineRules: string[] | null) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const setInputText = useCallback(
@@ -235,7 +240,7 @@ export function useComplimentGenerator(activeGuidelineContent: string | null) {
     try {
       const systemInstruction = withBrandGuidelines(
         getSystemPrompt1(state.mode),
-        activeGuidelineContent,
+        activeGuidelineRules,
       );
       const model = createJsonModel({
         systemInstruction,
@@ -261,6 +266,7 @@ export function useComplimentGenerator(activeGuidelineContent: string | null) {
         items: SLOTS.map((slot) => ({
           slot,
           text: data[slot] ?? "",
+          guidelineRulesFollowed: getGuidelineRulesForSlot(data, slot),
           escalation: null,
         })),
       };
@@ -276,7 +282,7 @@ export function useComplimentGenerator(activeGuidelineContent: string | null) {
             };
       dispatch({ type: "SUBMIT_FAILURE", error: appError });
     }
-  }, [state.inputText, state.mode, activeGuidelineContent]);
+  }, [state.inputText, state.mode, activeGuidelineRules]);
 
   const clear = useCallback(() => dispatch({ type: "CLEAR" }), []);
   const restore = useCallback(() => dispatch({ type: "RESTORE" }), []);
@@ -301,7 +307,7 @@ export function useComplimentGenerator(activeGuidelineContent: string | null) {
       try {
         const systemInstruction = withBrandGuidelines(
           SYSTEM_PROMPT_2,
-          activeGuidelineContent,
+          activeGuidelineRules,
         );
         const model = createJsonModel({
           systemInstruction,
@@ -324,6 +330,7 @@ export function useComplimentGenerator(activeGuidelineContent: string | null) {
           slot,
           original: data.original ?? item.text,
           escalated: data.escalated ?? "",
+          guidelineRules: data.guidelineRules ?? [],
         });
       } catch (err) {
         const message =
@@ -333,7 +340,7 @@ export function useComplimentGenerator(activeGuidelineContent: string | null) {
         dispatch({ type: "ESCALATE_FAILURE", slot, message });
       }
     },
-    [state.result, activeGuidelineContent],
+    [state.result, activeGuidelineRules],
   );
 
   return {

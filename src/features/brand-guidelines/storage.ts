@@ -16,7 +16,26 @@ const EMPTY_STATE: PersistedGuidelinesState = {
 function isCustomGuideline(value: unknown): value is CustomGuideline {
   if (typeof value !== 'object' || value === null) return false;
   const record = value as Record<string, unknown>;
-  return typeof record.id === 'string' && typeof record.name === 'string' && typeof record.content === 'string';
+  if (typeof record.id !== 'string' || typeof record.name !== 'string') return false;
+  return Array.isArray(record.rules) && record.rules.every((rule) => typeof rule === 'string');
+}
+
+/**
+ * Handles guidelines saved by an older version of this app that stored one
+ * freeform `content` string instead of a `rules` array — split on newlines
+ * so existing data isn't silently lost.
+ */
+function migrateLegacyGuideline(value: unknown): CustomGuideline | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.id !== 'string' || typeof record.name !== 'string' || typeof record.content !== 'string') return null;
+
+  const rules = record.content
+    .split('\n')
+    .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter((line) => line.length > 0);
+
+  return { id: record.id, name: record.name, rules };
 }
 
 /**
@@ -34,7 +53,10 @@ export function loadPersistedGuidelines(): PersistedGuidelinesState {
 
     const record = parsed as Record<string, unknown>;
     const customGuidelines = Array.isArray(record.customGuidelines)
-      ? record.customGuidelines.filter(isCustomGuideline).slice(0, MAX_CUSTOM_GUIDELINES)
+      ? record.customGuidelines
+          .map((entry) => (isCustomGuideline(entry) ? entry : migrateLegacyGuideline(entry)))
+          .filter((g): g is CustomGuideline => g !== null)
+          .slice(0, MAX_CUSTOM_GUIDELINES)
       : [];
     const activeGuidelineId = typeof record.activeGuidelineId === 'string' ? record.activeGuidelineId : DEFAULT_GUIDELINE_ID;
 

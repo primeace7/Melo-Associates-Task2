@@ -10,24 +10,29 @@ import { Schema, type TypedSchema } from "firebase/ai";
  * empty" or the error/compliments relationship).
  */
 
+/** A schema for an array of 1-based rule numbers. */
+const guidelineRulesArraySchema = Schema.array({ items: Schema.integer() });
+
 /** Mirrors `ComplimentGenerationSchema`. */
-export const complimentGenerationResponseSchema = Schema.object({
+export const complimentGenerationResponseSchema: TypedSchema = Schema.object({
   properties: {
     description: Schema.string({ nullable: true }),
     error: Schema.string({ nullable: true }),
-    compliment1: Schema.string({ nullable: true }),
-    compliment2: Schema.string({ nullable: true }),
-    compliment3: Schema.string({ nullable: true }),
+    compliment1: Schema.string(),
+    compliment1GuidelineRules: guidelineRulesArraySchema,
+    compliment2: Schema.string(),
+    compliment2GuidelineRules: guidelineRulesArraySchema,
+    compliment3: Schema.string(),
+    compliment3GuidelineRules: guidelineRulesArraySchema,
   },
-  optionalProperties: [],
 });
 
 /** Mirrors `EscalationSchema`. */
 export const escalationResponseSchema: TypedSchema = Schema.object({
   properties: {
-    original: Schema.string({ nullable: true }),
-    escalated: Schema.string({ nullable: true }),
+    original: Schema.string(),
+    escalated: Schema.string(),
+    guidelineRules: guidelineRulesArraySchema,
     error: Schema.string({ nullable: true }),
   },
-  optionalProperties: [],
 });

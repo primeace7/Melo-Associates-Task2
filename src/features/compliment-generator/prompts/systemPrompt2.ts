@@ -18,9 +18,10 @@ It should be:
 
 Respond with ONLY a single JSON object (no markdown fences, no commentary) with exactly this shape:
 {
-  "original": string,     // The exact compliment you were given, unchanged.
-  "escalated": string,    // Your more over-the-top escalation of it.
-  "error": string | null  // Null on success. Otherwise a short, kind, user-friendly message explaining what went wrong, with "original" and "escalated" left as empty strings.
+  "original": string,        // The exact compliment you were given, unchanged.
+  "escalated": string,       // Your more over-the-top escalation of it.
+  "guidelineRules": number[], // The numbers of any numbered brand guidelines below that specifically shaped the escalated version. Empty array if no numbered guidelines were provided, or none specifically applied.
+  "error": string | null     // Null on success. Otherwise a short, kind, user-friendly message explaining what went wrong, with "original"/"escalated" left as empty strings and "guidelineRules" as an empty array.
 }
 `;
 

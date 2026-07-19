@@ -16,6 +16,8 @@ export type ComplimentSlot = 'compliment1' | 'compliment2' | 'compliment3';
 export interface ComplimentItem {
   slot: ComplimentSlot;
   text: string;
+  /** Which numbered brand guideline rules (if any) the model says shaped this compliment. */
+  guidelineRulesFollowed: number[];
   escalation: EscalationState | null;
 }
 
@@ -24,6 +26,8 @@ export interface EscalationState {
   original: string;
   /** The over-the-top version returned by the model, once available. */
   escalated: string | null;
+  /** Which numbered brand guideline rules (if any) the model says shaped the escalated version. */
+  guidelineRulesFollowed: number[];
   isEscalating: boolean;
   error: string | null;
 }

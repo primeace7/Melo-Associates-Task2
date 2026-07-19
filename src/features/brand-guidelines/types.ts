@@ -2,7 +2,8 @@
 export interface CustomGuideline {
   id: string;
   name: string;
-  content: string;
+  /** Individual rules, in order. Numbered 1-based by position when sent to the model. */
+  rules: string[];
 }
 
 /**

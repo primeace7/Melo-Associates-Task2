@@ -111,17 +111,44 @@ live in `src/features/compliment-generator/prompts/`:
 ### Brand Guidelines tab
 
 People using the app can open **Brand guidelines** (top of the page) to write up to 3 of their
-own custom guidelines. A guideline can contain short instructions like "always mention teamwork" or "never use emoji". Pick any guideline you wish to use, or Default. Whichever one is active gets appended to every request,
-for both the first generation *and* any escalations.
+own custom guidelines, and pick one to use instead of Default. Each guideline is a **numbered
+list of individual rules** — added one at a time from the tab (e.g. "1. Always mention teamwork",
+"2. Never use emoji") — rather than one freeform paragraph. That numbering is what lets the
+model report back which specific rules it used.
 
-- **Default** always shows up as an option, but its content is baked into the code
-  (`systemPrompt3.ts`) and is never displayed or editable from the UI.
-- Custom guidelines (up to 3) are stored in the browser's `localStorage`, so they stick around
-  between visits on the same device/browser. There's no account system or server-side storage.
+Whichever guideline is active gets appended to every request (as a numbered list) for both the
+first generation *and* any escalations, and the model is asked to return which rule numbers it
+followed for each compliment (`compliment1GuidelineRules`, etc.) and for each escalation
+(`guidelineRules`). Those numbers show up as a small "Rules: 1, 3" badge under the relevant
+compliment.
+
+- **Default** always shows up as an option, but its rules are baked into the code
+  (`systemPrompt3.ts` → `SYSTEM_PROMPT_3_ADDITIONS`, an array of rule strings) and are never
+  displayed or editable from the UI. If a compliment followed Default's rules, the badge still
+  shows the bare numbers (e.g. "Rules: 2") even though what those numbers mean isn't shown.
+- Custom guidelines (up to 3, up to 10 rules each) are stored in the browser's `localStorage`, so
+  they stick around between visits on the same device/browser — there's no account system or
+  server-side storage.
 - This is a client-side app, so a technically determined person could still find the Default
-  text by inspecting the built JavaScript. `localStorage`-based hiding is meant for a normal UI
-  flow, not as a security boundary, so don't put secrets in it.
+  rules by inspecting the built JavaScript. `localStorage`-based hiding is meant for a normal UI
+  flow, not as a security boundary — don't put secrets in it.
+- The rule-number reporting is best-effort: the model is asked to self-report which numbers it
+  used, which isn't a guaranteed/verified trace of its reasoning — treat it as a helpful
+  indicator, not a strict audit log.
 
+### Controlled generation
+
+Both AI calls set `generationConfig.responseSchema` (via the `Schema` builder from
+`firebase/ai`) alongside `responseMimeType: "application/json"`, so Gemini is constrained to
+return the right JSON shape directly instead of relying only on instructions in the prompt. That
+shape now includes the guideline-rule-number fields too (`compliment1GuidelineRules` etc. for
+generation, `guidelineRules` for escalation) — each typed as an array of integers via
+`Schema.array({ items: Schema.integer() })`. The schemas live in `schemas/aiResponseSchemas.ts`
+and mirror the Zod schemas in `schemas/complimentSchemas.ts` field-for-field. We still run the
+Zod check afterwards — controlled generation guarantees the *shape* of the response, while Zod
+enforces the extra rules (like "not empty" or "compliments are required only when there's no
+error") and drives the retry-once logic. The guideline-rule arrays are treated as optional/
+best-effort in Zod — a missing array defaults to `[]` rather than failing validation.
 
 ### How a request gets validated
 

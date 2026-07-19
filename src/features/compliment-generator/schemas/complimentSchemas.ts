@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import type { ComplimentSlot } from '../../../types/compliment';
+
+/** An array of 1-based rule numbers (referencing the numbered brand guidelines list, if any). */
+const GuidelineRulesSchema = z.array(z.number().int().nonnegative()).optional();
 
 /**
  * Validates the raw JSON returned when generating the initial 3 compliments
@@ -10,14 +14,21 @@ import { z } from 'zod';
  *    is null. When the model reports an error it's fine for these to be
  *    missing, so the "required" check is done in `.superRefine` below rather
  *    than with plain `z.string()`.
+ *  - complimentNGuidelineRules: which numbered brand guideline rules (if
+ *    any) shaped that specific compliment. Optional/defaults to an empty
+ *    array — controlled generation aims to always include it, but we don't
+ *    want a missing array alone to fail validation and trigger a retry.
  */
 export const ComplimentGenerationSchema = z
   .object({
     description: z.string().trim().nullable().optional(),
     error: z.string().trim().nullable(),
     compliment1: z.string().trim().optional(),
+    compliment1GuidelineRules: GuidelineRulesSchema,
     compliment2: z.string().trim().optional(),
+    compliment2GuidelineRules: GuidelineRulesSchema,
     compliment3: z.string().trim().optional(),
+    compliment3GuidelineRules: GuidelineRulesSchema,
   })
   .superRefine((data, ctx) => {
     if (data.error) return; // Model reported a semantic error; compliments are allowed to be absent.
@@ -35,6 +46,18 @@ export const ComplimentGenerationSchema = z
 
 export type ComplimentGenerationResponse = z.infer<typeof ComplimentGenerationSchema>;
 
+/** Reads the `complimentNGuidelineRules` field for a given slot, defaulting to an empty array. */
+export function getGuidelineRulesForSlot(data: ComplimentGenerationResponse, slot: ComplimentSlot): number[] {
+  switch (slot) {
+    case 'compliment1':
+      return data.compliment1GuidelineRules ?? [];
+    case 'compliment2':
+      return data.compliment2GuidelineRules ?? [];
+    case 'compliment3':
+      return data.compliment3GuidelineRules ?? [];
+  }
+}
+
 /**
  * Validates the raw JSON returned when escalating a single compliment to be
  * even more over-the-top (System Prompt 2).
@@ -43,6 +66,7 @@ export const EscalationSchema = z
   .object({
     original: z.string().trim().optional(),
     escalated: z.string().trim().optional(),
+    guidelineRules: GuidelineRulesSchema,
     error: z.string().trim().nullable(),
   })
   .superRefine((data, ctx) => {

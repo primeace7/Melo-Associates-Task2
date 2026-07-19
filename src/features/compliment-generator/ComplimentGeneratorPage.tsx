@@ -32,7 +32,7 @@ export function ComplimentGeneratorPage() {
     restore,
     escalate,
     dismissError,
-  } = useComplimentGenerator(brandGuidelines.activeGuidelineContent);
+  } = useComplimentGenerator(brandGuidelines.activeGuidelineRules);
 
   return (
     <div className="min-h-screen px-4 py-12 sm:px-8 sm:py-20">
@@ -50,11 +50,11 @@ export function ComplimentGeneratorPage() {
             </div>
           </div>
           <h1 className="font-display text-3xl font-semibold leading-tight text-stage-ink sm:text-4xl">
-            Your biggest, most unhinged fan.
+            Hour biggest, most unhinged fan.
           </h1>
           <p className="max-w-md text-sm text-stage-inkSoft sm:text-base">
             Type a job title or describe someone, and get 3 compliments so
-            enthusiastic they should probably come with a confetti cannon!
+            enthusiastic they should probably come with a confetti cannon.
           </p>
         </header>
 

@@ -29,22 +29,24 @@ export function useBrandGuidelines() {
   const activeGuideline = options.find((o) => o.id === activeGuidelineId_) ?? options[0];
 
   /** null means "use the built-in Default guidelines" — see `withBrandGuidelines()`. */
-  const activeGuidelineContent: string | null = useMemo(() => {
+  const activeGuidelineRules: string[] | null = useMemo(() => {
     if (activeGuidelineId_ === DEFAULT_GUIDELINE_ID) return null;
-    return customGuidelines.find((g) => g.id === activeGuidelineId_)?.content ?? null;
+    return customGuidelines.find((g) => g.id === activeGuidelineId_)?.rules ?? null;
   }, [activeGuidelineId_, customGuidelines]);
 
   const canAddMore = customGuidelines.length < MAX_CUSTOM_GUIDELINES;
 
-  const addGuideline = useCallback((name: string, content: string) => {
+  const addGuideline = useCallback((name: string, rules: string[]) => {
+    const cleanedRules = rules.map((r) => r.trim()).filter((r) => r.length > 0);
     setCustomGuidelines((prev) => {
       if (prev.length >= MAX_CUSTOM_GUIDELINES) return prev;
-      return [...prev, { id: generateId(), name: name.trim(), content: content.trim() }];
+      return [...prev, { id: generateId(), name: name.trim(), rules: cleanedRules }];
     });
   }, []);
 
-  const updateGuideline = useCallback((id: string, name: string, content: string) => {
-    setCustomGuidelines((prev) => prev.map((g) => (g.id === id ? { ...g, name: name.trim(), content: content.trim() } : g)));
+  const updateGuideline = useCallback((id: string, name: string, rules: string[]) => {
+    const cleanedRules = rules.map((r) => r.trim()).filter((r) => r.length > 0);
+    setCustomGuidelines((prev) => prev.map((g) => (g.id === id ? { ...g, name: name.trim(), rules: cleanedRules } : g)));
   }, []);
 
   const deleteGuideline = useCallback((id: string) => {
@@ -59,7 +61,7 @@ export function useBrandGuidelines() {
     customGuidelines,
     activeGuidelineId: activeGuidelineId_,
     activeGuideline,
-    activeGuidelineContent,
+    activeGuidelineRules,
     canAddMore,
     addGuideline,
     updateGuideline,

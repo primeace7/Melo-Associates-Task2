@@ -1,5 +1,6 @@
 import type { ComplimentItem } from '../../../types/compliment';
 import { CopyButton } from './CopyButton';
+import { GuidelineRulesBadge } from './GuidelineRulesBadge';
 import { getComplimentCopyText } from '../utils/complimentText';
 
 interface ComplimentCardProps {
@@ -30,7 +31,10 @@ export function ComplimentCard({ item, index, onEscalate, onCopied }: Compliment
       </div>
 
       {!escalation && (
-        <p className="font-display text-lg leading-snug text-stage-ink sm:text-xl">{item.text}</p>
+        <div className="space-y-2">
+          <p className="font-display text-lg leading-snug text-stage-ink sm:text-xl">{item.text}</p>
+          <GuidelineRulesBadge ruleNumbers={item.guidelineRulesFollowed} />
+        </div>
       )}
 
       {escalation && (
@@ -50,13 +54,14 @@ export function ComplimentCard({ item, index, onEscalate, onCopied }: Compliment
           )}
 
           {!escalation.isEscalating && escalation.escalated && (
-            <div className="rounded-xl border border-stage-pink/30 bg-stage-pink/10 p-3">
+            <div className="space-y-2 rounded-xl border border-stage-pink/30 bg-stage-pink/10 p-3">
               <span className="mb-1 block font-mono text-[11px] uppercase tracking-wide text-stage-pinkDark">
                 Escalated
               </span>
               <p className="font-display text-lg leading-snug text-stage-ink sm:text-xl">
                 {escalation.escalated}
               </p>
+              <GuidelineRulesBadge ruleNumbers={escalation.guidelineRulesFollowed} />
             </div>
           )}
 

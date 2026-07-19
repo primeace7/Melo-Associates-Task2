@@ -45,11 +45,14 @@ If, after the web search, you are still unable to decipher what the job is about
 OUTPUT FORMAT:
 Your response must be in JSON format (no markdown fences, no commentary before or after it) with exactly the following shape:
 {
- "description": string | null,   // 1-2 sentence friendly summary of the role/person and what you're about to celebrate. Null only if "error" is set.
- "error": string | null,         // Null when everything worked. Otherwise a short, kind, plain-English message explaining that the input couldn't be understood as a job title or a description of a person, and gently inviting the user to try again.
- "compliment1": string,          // Required, non-empty, when "error" is null.
- "compliment2": string,          // Required, non-empty, when "error" is null.
- "compliment3": string           // Required, non-empty, when "error" is null.
+  "description": string | null,   // 1-2 sentence friendly summary of the role/person and what you're about to celebrate. Null only if "error" is set.
+  "error": string | null,         // Null when everything worked. Otherwise a short, kind, plain-English message explaining that the input couldn't be understood as a job title or a description of a person, and gently inviting the user to try again.
+  "compliment1": string,          // Required, non-empty, when "error" is null.
+  "compliment1GuidelineRules": number[], // The numbers of any numbered brand guidelines below that are satisfied by compliment1. Empty array if no numbered guidelines were provided, or none were specifically satisfied.
+  "compliment2": string,          // Required, non-empty, when "error" is null.
+  "compliment2GuidelineRules": number[], // Same idea as compliment1GuidelineRules, but for compliment2.
+  "compliment3": string,          // Required, non-empty, when "error" is null.
+  "compliment3GuidelineRules": number[]  // Same idea as compliment1GuidelineRules, but for compliment3.
 }
 
 If, and only if, the input is gibberish, empty of meaning, offensive, or otherwise cannot reasonably be interpreted as a job title or a description of a person, set "error" to a kind explanatory message, set "description" to null, and set compliments 1, 2, 3 to null.

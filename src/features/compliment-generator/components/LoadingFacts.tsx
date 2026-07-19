@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { LOADING_FACTS } from "../data/loadingFacts";
+import { useEffect, useState } from 'react';
+import { LOADING_FACTS } from '../data/loadingFacts';
 
 const MIN_DURATION_MS = 3200;
 const MAX_DURATION_MS = 8000;
@@ -19,9 +19,7 @@ function durationForText(text: string): number {
  * duration proportional to its length.
  */
 export function LoadingFacts() {
-  const [index, setIndex] = useState(() =>
-    Math.floor((Math.random() * 10) % LOADING_FACTS.length),
-  );
+  const [index, setIndex] = useState(0);
   const fact = LOADING_FACTS[index];
 
   useEffect(() => {
@@ -33,11 +31,7 @@ export function LoadingFacts() {
   }, [index, fact.text]);
 
   return (
-    <div
-      className="flex flex-col items-center gap-5 py-6"
-      role="status"
-      aria-live="polite"
-    >
+    <div className="flex flex-col items-center gap-5 py-6" role="status" aria-live="polite">
       <span className="relative flex h-10 w-10 items-center justify-center">
         <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full" />
         <span className="h-8 w-8 animate-spin-slow rounded-full border-[3px] border-stage-border border-t-stage-gold" />
@@ -47,16 +41,11 @@ export function LoadingFacts() {
         <p
           key={fact.id}
           className="animate-[ticker-in_var(--ticker-duration)_ease-in-out] font-display text-base italic leading-snug text-stage-ink sm:text-lg"
-          style={{
-            ["--ticker-duration" as string]: `${durationForText(fact.text)}ms`,
-          }}
+          style={{ ['--ticker-duration' as string]: `${durationForText(fact.text)}ms` }}
         >
           &ldquo;{fact.text}&rdquo;
         </p>
-        <p
-          key={`${fact.id}-source`}
-          className="mt-2 font-mono text-xs uppercase tracking-wide text-stage-inkSoft"
-        >
+        <p key={`${fact.id}-source`} className="mt-2 font-mono text-xs uppercase tracking-wide text-stage-inkSoft">
           — {fact.source}
         </p>
       </div>
