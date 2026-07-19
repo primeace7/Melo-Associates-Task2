@@ -50,7 +50,7 @@ export function ComplimentGeneratorPage() {
             </div>
           </div>
           <h1 className="font-display text-3xl font-semibold leading-tight text-stage-ink sm:text-4xl">
-            Hour biggest, most unhinged fan.
+            Your biggest, most unhinged fan.
           </h1>
           <p className="max-w-md text-sm text-stage-inkSoft sm:text-base">
             Type a job title or describe someone, and get 3 compliments so
